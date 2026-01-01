@@ -23,16 +23,11 @@
 - [Quick Navigation](#-quick-navigation)
 - [Pre-requisites](#-pre-requisites)
 - [Installation Guide](#-installation-guide)
-  - [Docker Installation](#1️⃣-install-docker-master-machine)
-  - [Jenkins Master Setup](#2️⃣-install-and-configure-jenkins-master-machine)
-  - [EKS Cluster Setup](#3️⃣-create-eks-cluster-on-aws-master-machine)
-  - [Jenkins Worker Setup](#4️⃣-setting-up-jenkins-worker-node)
-  - [SonarQube Setup](#5️⃣-install-and-configure-sonarqube-master-machine)
-  - [Trivy Setup](#6️⃣-install-trivy-jenkins-worker)
-  - [ArgoCD Setup](#7️⃣-install-and-configure-argocd-master-machine)
+- [Application Setup](#-application-setup)
 - [Jenkins Configuration](#️-jenkins-configuration)
-- [Email Notification Setup](#-email-notification-setup)
+- [ArgoCD Deployment](#-argocd-deployment)
 - [Monitoring Setup](#-monitoring-with-prometheus-and-grafana)
+- [API Reference](#-api-reference)
 - [Project Structure](#-project-structure)
 - [Clean Up](#-clean-up)
 
@@ -40,99 +35,110 @@
 
 ## 📖 Overview
 
-A production-ready **GitOps-Driven AI Inference Platform** demonstrating modern cloud-native DevSecOps practices. This platform provides real-time sentiment analysis using a FastAPI-based microservice, deployed to **AWS EKS** via GitOps principles using **Argo CD**, with comprehensive CI/CD pipelines, security scanning, and monitoring.
+A production-ready **GitOps-Driven AI Inference Platform** for real-time sentiment analysis. Built with **FastAPI** and **Python 3.11**, deployed to **AWS EKS** using GitOps principles with **Argo CD**, featuring comprehensive CI/CD pipelines with security scanning.
+
+### Key Features
+
+- 🤖 **AI Sentiment Analysis** - Real-time text classification using DistilBERT
+- 🔄 **GitOps Workflow** - Automated deployments via Argo CD
+- 🔒 **Security Scanning** - OWASP, Trivy, Bandit, Safety
+- 📊 **Code Quality** - SonarQube, Flake8, Black, MyPy
+- 📈 **Monitoring** - Prometheus metrics & Grafana dashboards
+- 🐳 **Multi-stage Docker** - Production-optimized container builds
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Technology | Purpose | Description |
-|:----------:|---------|-------------|
-| **GitHub** | Code | Source code management and version control |
-| **Docker** | Containerization | Container runtime and image building |
-| **Jenkins** | CI | Continuous Integration pipeline automation |
-| **OWASP** | Security | Dependency vulnerability checking |
-| **SonarQube** | Quality | Static code analysis and quality gates |
-| **Trivy** | Security | Container and filesystem vulnerability scanning |
-| **ArgoCD** | CD | GitOps-based continuous deployment |
-| **Redis** | Caching | In-memory data caching layer |
-| **AWS EKS** | Kubernetes | Managed Kubernetes cluster on AWS |
-| **Helm** | Monitoring | Package manager for Prometheus & Grafana |
+| Technology | Purpose |
+|:----------:|---------|
+| **GitHub** | Source Code Management |
+| **Docker** | Containerization (Python 3.11-slim) |
+| **Jenkins** | CI Pipeline (Build, Test, Push) |
+| **OWASP** | Dependency Vulnerability Check |
+| **SonarQube** | Code Quality Analysis |
+| **Trivy** | Container & Filesystem Scanning |
+| **ArgoCD** | GitOps Continuous Deployment |
+| **Redis** | Caching Layer |
+| **AWS EKS** | Kubernetes Cluster (v1.30) |
+| **Helm** | Prometheus & Grafana Deployment |
 
 ---
 
 ## 🔄 Pipeline Architecture
 
-### CI Pipeline - Build and Push Image
+### CI Pipeline (Jenkinsfile)
 
 ```
-┌────────────┐   ┌────────────┐   ┌────────────┐   ┌────────────┐   ┌────────────┐
-│  Checkout  │──▶│ SonarQube  │──▶│   OWASP    │──▶│   Trivy    │──▶│   Docker   │
-│    Code    │   │  Analysis  │   │ Dep Check  │   │  FS Scan   │   │ Build/Push │
-└────────────┘   └────────────┘   └────────────┘   └────────────┘   └────────────┘
+┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐
+│ Checkout │──▶│  Unit    │──▶│  Code    │──▶│ Security │──▶│  Docker  │──▶│  Push    │
+│   Code   │   │  Tests   │   │ Quality  │   │   Scan   │   │  Build   │   │  Image   │
+└──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘
+                    │              │              │
+                    ▼              ▼              ▼
+               pytest +      Flake8 +       Bandit +
+               coverage      Black +        Safety +
+                             MyPy          Trivy
 ```
 
-### CD Pipeline - Update Application Version
+### CD Pipeline (GitOps Update)
 
 ```
-┌────────────┐   ┌────────────┐   ┌────────────┐
-│  Trigger   │──▶│   Update   │──▶│ Git Commit │
-│  from CI   │   │ Image Tag  │   │   & Push   │
-└────────────┘   └────────────┘   └────────────┘
+┌──────────┐   ┌──────────────────┐   ┌──────────┐
+│   CI     │──▶│ Update Image Tag │──▶│   Git    │
+│ Success  │   │ in Kustomization │   │   Push   │
+└──────────┘   └──────────────────┘   └──────────┘
 ```
 
-### ArgoCD - Deployment on EKS
+### ArgoCD Sync
 
 ```
-┌────────────┐   ┌────────────┐   ┌────────────┐   ┌────────────┐
-│  Git Repo  │──▶│   ArgoCD   │──▶│  Sync to   │──▶│  AWS EKS   │
-│   Change   │   │   Detect   │   │  Cluster   │   │ Deployment │
-└────────────┘   └────────────┘   └────────────┘   └────────────┘
+┌──────────┐   ┌──────────┐   ┌──────────┐   ┌────────────────┐
+│  GitOps  │──▶│  ArgoCD  │──▶│  Sync    │──▶│  EKS Cluster   │
+│   Repo   │   │  Detect  │   │  Apply   │   │  (3 Envs)      │
+└──────────┘   └──────────┘   └──────────┘   └────────────────┘
 ```
 
 ---
 
 ## 📚 Quick Navigation
 
-> **Important:** Below table helps you navigate to the particular tool installation section fast.
-
-| Tech Stack | Installation Section |
-|------------|---------------------|
-| Jenkins Master | [Install Jenkins](#2️⃣-install-and-configure-jenkins-master-machine) |
-| eksctl | [Install eksctl](#install-eksctl) |
-| ArgoCD | [Install ArgoCD](#7️⃣-install-and-configure-argocd-master-machine) |
-| Jenkins Worker | [Setup Worker Node](#4️⃣-setting-up-jenkins-worker-node) |
-| OWASP | [Configure OWASP](#configure-owasp) |
-| SonarQube | [Install SonarQube](#5️⃣-install-and-configure-sonarqube-master-machine) |
-| Email Setup | [Email Notifications](#-email-notification-setup) |
-| Monitoring | [Prometheus & Grafana](#-monitoring-with-prometheus-and-grafana) |
-| Clean Up | [Clean Up Resources](#-clean-up) |
+| Section | Description |
+|---------|-------------|
+| [Jenkins Master](#2️⃣-install-jenkins-master-machine) | Install and configure Jenkins |
+| [eksctl & EKS](#3️⃣-create-eks-cluster-master-machine) | Create Kubernetes cluster |
+| [Jenkins Worker](#4️⃣-setup-jenkins-worker-node) | Configure build agent |
+| [SonarQube](#5️⃣-install-sonarqube-master-machine) | Code quality server |
+| [Trivy](#6️⃣-install-trivy-jenkins-worker) | Security scanner |
+| [ArgoCD](#7️⃣-install-argocd-master-machine) | GitOps deployment |
+| [Monitoring](#-monitoring-with-prometheus-and-grafana) | Prometheus & Grafana |
+| [Clean Up](#-clean-up) | Delete resources |
 
 ---
 
 ## 📋 Pre-requisites
 
-> **Note:** This project will be implemented on **N. California region (us-west-1)**.
+> **Note:** This project uses **us-west-1 (N. California)** region.
 
-### Infrastructure Requirements
+### AWS Infrastructure
 
-| Machine | Instance Type | vCPU | RAM | Storage | Purpose |
-|---------|--------------|------|-----|---------|---------|
-| Master | t2.large | 2 | 8 GB | 29 GB | Jenkins Master, eksctl, EKS management |
-| Worker | t2.large | 2 | 8 GB | 29 GB | Jenkins Worker, Build agents |
+| Machine | Type | vCPU | RAM | Storage | Purpose |
+|---------|------|------|-----|---------|---------|
+| Master | t2.large | 2 | 8 GB | 29 GB | Jenkins, eksctl, EKS mgmt |
+| Worker | t2.large | 2 | 8 GB | 29 GB | Jenkins Agent, Docker builds |
 
-### Required Security Group Ports
+### Security Group Ports
 
-| Port | Protocol | Service |
-|------|----------|---------|
-| 22 | TCP | SSH |
-| 80 | TCP | HTTP |
-| 443 | TCP | HTTPS |
-| 465 | TCP | SMTPS (Email) |
-| 6443 | TCP | Kubernetes API |
-| 8080 | TCP | Jenkins |
-| 9000 | TCP | SonarQube |
-| 30000-32767 | TCP | NodePort Services |
+| Port | Service |
+|------|---------|
+| 22 | SSH |
+| 80/443 | HTTP/HTTPS |
+| 465 | SMTPS (Email) |
+| 6443 | Kubernetes API |
+| 8000 | AI Inference App |
+| 8080 | Jenkins |
+| 9000 | SonarQube |
+| 30000-32767 | NodePort |
 
 ---
 
@@ -146,18 +152,16 @@ sudo apt-get install docker.io -y
 sudo usermod -aG docker ubuntu && newgrp docker
 ```
 
-> **Note:** `newgrp docker` refreshes the group config - no restart needed.
-
 ---
 
-### 2️⃣ Install and Configure Jenkins (Master Machine)
+### 2️⃣ Install Jenkins (Master Machine)
 
 ```bash
-# Update and install Java
+# Install Java 17
 sudo apt update -y
 sudo apt install fontconfig openjdk-17-jre -y
 
-# Add Jenkins repository
+# Add Jenkins repo
 sudo wget -O /usr/share/keyrings/jenkins-keyring.asc \
   https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
 
@@ -170,17 +174,17 @@ sudo apt-get update -y
 sudo apt-get install jenkins -y
 ```
 
-**Access Jenkins:** `http://<master-public-ip>:8080`
+**Access:** `http://<master-ip>:8080`
 
 ---
 
-### 3️⃣ Create EKS Cluster on AWS (Master Machine)
+### 3️⃣ Create EKS Cluster (Master Machine)
 
 #### Install AWS CLI
 
 ```bash
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-sudo apt install unzip
+sudo apt install unzip -y
 unzip awscliv2.zip
 sudo ./aws/install
 aws configure
@@ -203,30 +207,25 @@ sudo mv /tmp/eksctl /usr/local/bin
 eksctl version
 ```
 
-#### Create EKS Cluster
+#### Create Cluster
 
 ```bash
-eksctl create cluster --name=wanderlust \
+# Create EKS cluster
+eksctl create cluster --name=ai-inference-cluster \
                       --region=us-west-1 \
                       --version=1.30 \
                       --without-nodegroup
-```
 
-#### Associate IAM OIDC Provider
-
-```bash
+# Associate OIDC provider
 eksctl utils associate-iam-oidc-provider \
   --region us-west-1 \
-  --cluster wanderlust \
+  --cluster ai-inference-cluster \
   --approve
-```
 
-#### Create Node Group
-
-```bash
-eksctl create nodegroup --cluster=wanderlust \
+# Create node group
+eksctl create nodegroup --cluster=ai-inference-cluster \
                         --region=us-west-1 \
-                        --name=wanderlust \
+                        --name=ai-inference-nodes \
                         --node-type=t2.large \
                         --nodes=2 \
                         --nodes-min=2 \
@@ -236,15 +235,9 @@ eksctl create nodegroup --cluster=wanderlust \
                         --ssh-public-key=eks-nodegroup-key
 ```
 
-> **Note:** Ensure `eks-nodegroup-key` exists in your AWS account.
-
 ---
 
-### 4️⃣ Setting up Jenkins Worker Node
-
-#### Create EC2 Instance
-- **Instance Type:** t2.large (2 vCPU, 8GB RAM)
-- **Storage:** 29 GB
+### 4️⃣ Setup Jenkins Worker Node
 
 #### Install Java
 
@@ -254,60 +247,48 @@ sudo apt install fontconfig openjdk-17-jre -y
 ```
 
 #### Attach IAM Role
-1. Select Jenkins Worker EC2 → **Actions** → **Security** → **Modify IAM role**
-2. Attach role with **Administrator Access**
+- EC2 → Actions → Security → Modify IAM role → **Administrator Access**
 
 #### Configure AWS CLI
 
 ```bash
 sudo su
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-sudo apt install unzip
+sudo apt install unzip -y
 unzip awscliv2.zip
 sudo ./aws/install
 aws configure
 ```
 
-#### Generate SSH Keys (On Master)
-
-```bash
-ssh-keygen
-# Copy ~/.ssh/id_rsa.pub content to Worker's ~/.ssh/authorized_keys
-```
-
 #### Add Node in Jenkins
 
-Navigate to **Manage Jenkins** → **Nodes** → **Add Node**
+**Manage Jenkins** → **Nodes** → **New Node**
 
 | Setting | Value |
 |---------|-------|
-| Name | Node |
-| Type | Permanent Agent |
-| Executors | 2 |
-| Remote Root Directory | /home/ubuntu |
-| Labels | Node |
-| Launch Method | Via SSH |
-| Host | `<worker-public-ip>` |
-| Credentials | SSH with private key |
-| Host Key Verification | Non verifying |
+| Name | `Node` |
+| Remote Root | `/home/ubuntu` |
+| Labels | `Node` |
+| Launch | Via SSH |
+| Host | `<worker-ip>` |
 
 #### Install Docker on Worker
 
 ```bash
 sudo apt install docker.io -y
 sudo usermod -aG docker ubuntu && newgrp docker
+chmod 777 /var/run/docker.sock
 ```
 
 ---
 
-### 5️⃣ Install and Configure SonarQube (Master Machine)
+### 5️⃣ Install SonarQube (Master Machine)
 
 ```bash
 docker run -itd --name SonarQube-Server -p 9000:9000 sonarqube:lts-community
 ```
 
-**Access:** `http://<master-ip>:9000`  
-**Default Credentials:** admin / admin
+**Access:** `http://<master-ip>:9000` (admin/admin)
 
 ---
 
@@ -323,38 +304,103 @@ sudo apt-get install trivy -y
 
 ---
 
-### 7️⃣ Install and Configure ArgoCD (Master Machine)
-
-#### Create Namespace and Install
+### 7️⃣ Install ArgoCD (Master Machine)
 
 ```bash
+# Create namespace
 kubectl create namespace argocd
+
+# Install ArgoCD
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+# Wait for pods
 watch kubectl get pods -n argocd
-```
 
-#### Install ArgoCD CLI
-
-```bash
+# Install CLI
 sudo curl --silent --location -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/download/v2.4.7/argocd-linux-amd64
 sudo chmod +x /usr/local/bin/argocd
-```
 
-#### Expose ArgoCD Server
-
-```bash
+# Expose ArgoCD
 kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "NodePort"}}'
-kubectl get svc -n argocd
-```
 
-#### Get Initial Password
-
-```bash
+# Get password
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
 ```
 
-**Access:** `https://<worker-public-ip>:<nodeport>`  
-**Username:** admin
+---
+
+## 🐍 Application Setup
+
+### Local Development
+
+```bash
+cd gitops-ai-app
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# venv\Scripts\activate   # Windows
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run application
+cd src
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### Run Tests
+
+```bash
+cd gitops-ai-app
+
+# Run all tests
+python -m pytest tests/ -v
+
+# Run with coverage
+python -m pytest tests/ \
+    --cov=src \
+    --cov-report=xml \
+    --cov-report=html \
+    -v
+```
+
+### Code Quality Checks
+
+```bash
+# Linting
+pip install flake8 black mypy
+flake8 src/ --max-line-length=100 --ignore=E501,W503
+black --check src/ --line-length=100
+mypy src/ --ignore-missing-imports
+
+# Security scan
+pip install bandit safety
+bandit -r src/ -f json -o bandit-report.json
+safety check -r requirements.txt
+```
+
+### Docker Build
+
+```bash
+cd gitops-ai-app
+
+# Build production image
+docker build --target production -t ai-inference:latest .
+
+# Build development image
+docker build --target development -t ai-inference:dev .
+
+# Run container
+docker run -p 8000:8000 \
+    -e LOG_LEVEL=INFO \
+    -e WORKERS=4 \
+    --name ai-inference \
+    ai-inference:latest
+
+# Test health endpoint
+curl http://localhost:8000/health
+```
 
 ---
 
@@ -362,105 +408,94 @@ kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.pas
 
 ### Required Plugins
 
-Install via **Manage Jenkins** → **Plugins** → **Available**:
-
 - ✅ OWASP Dependency-Check
 - ✅ SonarQube Scanner
 - ✅ Docker Pipeline
 - ✅ Pipeline: Stage View
-
-### Configure OWASP
-
-**Manage Jenkins** → **Tools** → **Dependency-Check installations**
-- Name: `DP-Check`
-- Install automatically: ✅
-
-### Configure SonarQube
-
-1. **Create Token in SonarQube:**
-   - Administration → Security → Users → Token
-
-2. **Add Credentials in Jenkins:**
-   - Manage Jenkins → Credentials → Add Secret text
-
-3. **Configure Scanner:**
-   - Manage Jenkins → Tools → SonarQube Scanner
-
-4. **Add SonarQube Server:**
-   - Manage Jenkins → System → SonarQube installations
-
-5. **Create Webhook in SonarQube:**
-   - Administration → Webhooks → Create
-   - URL: `http://<jenkins-ip>:8080/sonarqube-webhook/`
+- ✅ Git
 
 ### Add Credentials
 
-| Credential | Type | ID |
-|------------|------|-----|
-| GitHub | Username/PAT | github-credentials |
-| Docker Hub | Username/Password | docker-credentials |
-| SonarQube | Secret text | sonarqube-token |
+| ID | Type | Description |
+|----|------|-------------|
+| `docker-registry-url` | Secret text | Docker registry URL |
+| `docker-registry-credentials` | Username/Password | Docker Hub login |
+| `gitops-repo-credentials` | Username/Password | GitHub PAT |
+| `sonarqube-token` | Secret text | SonarQube token |
 
-### Fix Docker Socket Permission
+### Configure Tools
 
-```bash
-chmod 777 /var/run/docker.sock
-```
+**Manage Jenkins** → **Tools**:
 
----
+| Tool | Name | Install |
+|------|------|---------|
+| Dependency-Check | `DP-Check` | Auto |
+| SonarQube Scanner | `SonarScanner` | Auto |
 
-## 📧 Email Notification Setup
+### SonarQube Webhook
 
-### Gmail App Password
+**SonarQube** → **Administration** → **Webhooks** → **Create**
+- URL: `http://<jenkins-ip>:8080/sonarqube-webhook/`
 
-> **Important:** Enable 2-Step Verification first!
+### Create Pipeline Jobs
 
-1. Gmail → **Manage Google Account** → **Security**
-2. Search **App passwords** → Create for Jenkins
-
-### Configure in Jenkins
-
-**Manage Jenkins** → **System** → **Extended E-mail Notification**
+#### CI Pipeline (ai-inference-ci)
 
 | Setting | Value |
 |---------|-------|
-| SMTP Server | smtp.gmail.com |
-| SMTP Port | 465 |
-| Use SSL | ✅ |
-| Credentials | Gmail app password |
+| Pipeline | Pipeline script from SCM |
+| SCM | Git |
+| Repository | `https://github.com/your-org/gitops-ai-app.git` |
+| Script Path | `Jenkinsfile` |
 
 ---
 
-## 🔗 Connect EKS to ArgoCD
+## 🎯 ArgoCD Deployment
+
+### Connect Cluster
 
 ```bash
-# Login to ArgoCD
+# Login
 argocd login <argocd-url>:<port> --username admin
 
-# List clusters
-argocd cluster list
-
-# Get cluster context
-kubectl config get-contexts
-
 # Add cluster
-argocd cluster add <cluster-context> --name wanderlust-eks-cluster
+kubectl config get-contexts
+argocd cluster add <context-name> --name ai-inference-cluster
 ```
 
-### Create ArgoCD Application
+### Deploy Applications
 
-**Applications** → **New App**
+```bash
+# Apply ArgoCD projects
+kubectl apply -f gitops-manifests/argocd/projects.yaml
 
-| Setting | Value |
-|---------|-------|
-| Name | ai-inference |
-| Project | default |
-| Sync Policy | Automatic |
-| Auto-Create Namespace | ✅ |
-| Repository URL | Your GitOps repo |
-| Path | apps/ai-inference/overlays/dev |
-| Cluster | Your EKS cluster |
-| Namespace | ai-inference |
+# Apply root application (App of Apps)
+kubectl apply -f gitops-manifests/argocd/root-app.yaml
+```
+
+### ArgoCD Applications Created
+
+| Application | Namespace | Path | Sync |
+|-------------|-----------|------|------|
+| `ai-inference-dev` | ai-inference-dev | `apps/ai-inference/overlays/dev` | Auto |
+| `ai-inference-staging` | ai-inference-staging | `apps/ai-inference/overlays/staging` | Auto |
+| `ai-inference-prod` | ai-inference-prod | `apps/ai-inference/overlays/prod` | Manual |
+| `monitoring` | monitoring | `monitoring` | Auto |
+
+### Verify Deployment
+
+```bash
+# Check ArgoCD apps
+argocd app list
+
+# Check pods
+kubectl get pods -n ai-inference-dev
+kubectl get pods -n ai-inference-staging
+kubectl get pods -n ai-inference-prod
+
+# Check services
+kubectl get svc -n ai-inference-dev
+```
 
 ---
 
@@ -474,47 +509,83 @@ chmod 700 get_helm.sh
 ./get_helm.sh
 ```
 
-### Add Repositories
+### Deploy Prometheus Stack
 
 ```bash
+# Add repos
 helm repo add stable https://charts.helm.sh/stable
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-```
 
-### Install Prometheus Stack
-
-```bash
+# Install
 kubectl create namespace prometheus
 helm install stable prometheus-community/kube-prometheus-stack -n prometheus
-```
 
-### Expose Services
+# Expose services
+kubectl patch svc stable-kube-prometheus-sta-prometheus -n prometheus -p '{"spec": {"type": "NodePort"}}'
+kubectl patch svc stable-grafana -n prometheus -p '{"spec": {"type": "NodePort"}}'
 
-```bash
-# Prometheus
-kubectl edit svc stable-kube-prometheus-sta-prometheus -n prometheus
-# Change type: ClusterIP → type: NodePort
-
-# Grafana
-kubectl edit svc stable-grafana -n prometheus
-# Change type: ClusterIP → type: NodePort
-```
-
-### Get Grafana Password
-
-```bash
+# Get Grafana password
 kubectl get secret --namespace prometheus stable-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
 ```
 
-**Username:** admin
+### Application Metrics
 
-### Recommended Dashboards
+The AI Inference app exposes these Prometheus metrics at `/metrics`:
 
-| Dashboard ID | Description |
-|-------------|-------------|
-| 3119 | Kubernetes Cluster Monitoring |
-| 6417 | Kubernetes Pod Monitoring |
-| 15757 | Kubernetes Views (Global) |
+| Metric | Type | Description |
+|--------|------|-------------|
+| `http_requests_total` | Counter | Total HTTP requests |
+| `http_request_duration_seconds` | Histogram | Request latency |
+| `predictions_total` | Counter | Total predictions |
+| `prediction_duration_seconds` | Histogram | Inference time |
+
+---
+
+## 📡 API Reference
+
+### Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/` | Welcome message |
+| GET | `/health` | Liveness probe |
+| GET | `/ready` | Readiness probe |
+| GET | `/metrics` | Prometheus metrics |
+| POST | `/api/v1/predict` | Single prediction |
+| POST | `/api/v1/predict/batch` | Batch predictions |
+
+### Example: Single Prediction
+
+```bash
+curl -X POST http://localhost:8000/api/v1/predict \
+  -H "Content-Type: application/json" \
+  -d '{"text": "This product is amazing!"}'
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "result": {
+    "text": "This product is amazing!",
+    "label": "POSITIVE",
+    "confidence": 0.95,
+    "sentiment_score": 0.89,
+    "processing_time_ms": 23.5
+  },
+  "model": "distilbert-base-uncased-finetuned-sst-2-english",
+  "timestamp": "2026-01-01T10:30:00Z",
+  "request_id": "abc123"
+}
+```
+
+### Example: Batch Prediction
+
+```bash
+curl -X POST http://localhost:8000/api/v1/predict/batch \
+  -H "Content-Type: application/json" \
+  -d '{"texts": ["Great!", "Terrible!", "Okay"]}'
+```
 
 ---
 
@@ -522,36 +593,50 @@ kubectl get secret --namespace prometheus stable-grafana -o jsonpath="{.data.adm
 
 ```
 GitOps-Driven-AI-Inference-Platform/
-├── gitops-ai-app/                    # Application Source Code
-│   ├── src/
-│   │   ├── main.py                   # FastAPI entry point
-│   │   ├── config.py                 # Configuration
-│   │   ├── api/
-│   │   │   └── predict.py            # Prediction endpoint
-│   │   ├── models/
-│   │   │   └── sentiment_model.py    # ML model
-│   │   ├── services/
-│   │   │   └── inference_service.py  # Business logic
-│   │   └── utils/
-│   │       └── preprocessing.py      # Text preprocessing
-│   ├── tests/                        # Unit tests
-│   ├── Dockerfile                    # Multi-stage build
-│   ├── Jenkinsfile                   # CI pipeline
-│   ├── Jenkinsfile.pr                # PR pipeline
-│   └── requirements.txt              # Dependencies
 │
-├── gitops-manifests/                 # Kubernetes Manifests
+├── gitops-ai-app/                      # Application Repository
+│   ├── src/
+│   │   ├── main.py                     # FastAPI app (uvicorn)
+│   │   ├── config.py                   # Environment config
+│   │   ├── api/
+│   │   │   └── predict.py              # /api/v1/predict endpoint
+│   │   ├── models/
+│   │   │   └── sentiment_model.py      # DistilBERT model
+│   │   ├── services/
+│   │   │   └── inference_service.py    # ML inference logic
+│   │   └── utils/
+│   │       └── preprocessing.py        # Text preprocessing
+│   ├── tests/
+│   │   ├── test_api.py                 # API tests
+│   │   └── test_inference.py           # Inference tests
+│   ├── Dockerfile                      # Multi-stage (builder/production/dev)
+│   ├── Jenkinsfile                     # CI pipeline
+│   ├── Jenkinsfile.pr                  # PR validation
+│   ├── requirements.txt                # Python deps
+│   ├── pyproject.toml                  # Project config
+│   └── pytest.ini                      # Test config
+│
+├── gitops-manifests/                   # GitOps Repository
 │   ├── argocd/
-│   │   ├── root-app.yaml             # App of Apps
-│   │   └── projects.yaml             # RBAC
+│   │   ├── root-app.yaml               # App of Apps bootstrap
+│   │   └── projects.yaml               # RBAC & projects
 │   ├── apps/
 │   │   └── ai-inference/
-│   │       ├── base/                 # Base manifests
+│   │       ├── base/
+│   │       │   ├── deployment.yaml     # 2 replicas, resources, probes
+│   │       │   ├── service.yaml        # ClusterIP port 80→8000
+│   │       │   ├── hpa.yaml            # Autoscaling
+│   │       │   └── kustomization.yaml  # Base config
 │   │       └── overlays/
-│   │           ├── dev/
-│   │           ├── staging/
-│   │           └── prod/
-│   └── monitoring/                   # Prometheus & Grafana
+│   │           ├── dev/                # 1 replica
+│   │           ├── staging/            # 2 replicas
+│   │           └── prod/               # 3 replicas, ingress
+│   └── monitoring/
+│       ├── prometheus/
+│       │   └── values.yaml
+│       └── grafana/
+│           └── dashboards/
+│               └── ai-inference-dashboard.json
 │
 └── README.md
 ```
@@ -560,11 +645,11 @@ GitOps-Driven-AI-Inference-Platform/
 
 ## 🌍 Environments
 
-| Environment | Namespace | Replicas | Auto-Sync |
-|-------------|-----------|----------|-----------|
-| Dev | ai-inference-dev | 1 | ✅ Yes |
-| Staging | ai-inference-staging | 2 | ✅ Yes |
-| Production | ai-inference-prod | 3 | ⚠️ Manual |
+| Environment | Namespace | Replicas | Resources | Sync |
+|-------------|-----------|----------|-----------|------|
+| **Dev** | ai-inference-dev | 1 | 256m/512Mi | Auto |
+| **Staging** | ai-inference-staging | 2 | 500m/1Gi | Auto |
+| **Production** | ai-inference-prod | 3 | 1000m/2Gi | Manual |
 
 ---
 
@@ -573,31 +658,60 @@ GitOps-Driven-AI-Inference-Platform/
 ### Delete EKS Cluster
 
 ```bash
-eksctl delete cluster --name=wanderlust --region=us-west-1
+eksctl delete cluster --name=ai-inference-cluster --region=us-west-1
+```
+
+### Delete ArgoCD Apps
+
+```bash
+argocd app delete ai-inference-dev
+argocd app delete ai-inference-staging
+argocd app delete ai-inference-prod
+argocd app delete monitoring
 ```
 
 ### Terminate EC2 Instances
 
-1. AWS Console → EC2 → Instances
-2. Select Master & Worker instances
-3. Instance State → Terminate
+AWS Console → EC2 → Select instances → **Terminate**
 
-### Clean Docker Resources
+### Clean Docker
 
 ```bash
 docker stop $(docker ps -aq)
 docker rm $(docker ps -aq)
 docker rmi $(docker images -q)
+docker system prune -a
 ```
+
+---
+
+## 📧 Email Notification Setup
+
+### Gmail App Password
+
+1. Enable **2-Step Verification**
+2. Gmail → **Manage Account** → **Security** → **App passwords**
+3. Create password for Jenkins
+
+### Jenkins Configuration
+
+**Manage Jenkins** → **System** → **Extended E-mail Notification**
+
+| Setting | Value |
+|---------|-------|
+| SMTP Server | smtp.gmail.com |
+| SMTP Port | 465 |
+| Use SSL | ✅ |
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
 <p align="center">
-  <b>Made with ❤️ using GitOps & DevSecOps principles</b>
+  <b>🚀 GitOps-Driven AI Inference Platform</b><br>
+  Built with FastAPI • Deployed with ArgoCD • Secured with DevSecOps
 </p>
