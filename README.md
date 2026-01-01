@@ -1,37 +1,63 @@
 # 🚀 GitOps-Driven AI Inference Platform
 
-[![GitHub](https://img.shields.io/badge/GitHub-Code-181717?logo=github&logoColor=white)](https://github.com/)
-[![Docker](https://img.shields.io/badge/Docker-Containerization-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
-[![Jenkins](https://img.shields.io/badge/Jenkins-CI-D24939?logo=jenkins&logoColor=white)](https://www.jenkins.io/)
-[![OWASP](https://img.shields.io/badge/OWASP-Security-000000?logo=owasp&logoColor=white)](https://owasp.org/)
-[![SonarQube](https://img.shields.io/badge/SonarQube-Quality-4E9BCD?logo=sonarqube&logoColor=white)](https://www.sonarqube.org/)
-[![Trivy](https://img.shields.io/badge/Trivy-Scanner-1904DA?logo=aqua&logoColor=white)](https://trivy.dev/)
-[![ArgoCD](https://img.shields.io/badge/ArgoCD-CD-EF7B4D?logo=argo&logoColor=white)](https://argoproj.github.io/cd/)
-[![Redis](https://img.shields.io/badge/Redis-Caching-DC382D?logo=redis&logoColor=white)](https://redis.io/)
-[![AWS EKS](https://img.shields.io/badge/AWS%20EKS-Kubernetes-FF9900?logo=amazoneks&logoColor=white)](https://aws.amazon.com/eks/)
-[![Helm](https://img.shields.io/badge/Helm-Monitoring-0F1689?logo=helm&logoColor=white)](https://helm.sh/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+<p align="center">
+  <img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub"/>
+  <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker"/>
+  <img src="https://img.shields.io/badge/Jenkins-D24939?style=for-the-badge&logo=jenkins&logoColor=white" alt="Jenkins"/>
+  <img src="https://img.shields.io/badge/OWASP-000000?style=for-the-badge&logo=owasp&logoColor=white" alt="OWASP"/>
+  <img src="https://img.shields.io/badge/SonarQube-4E9BCD?style=for-the-badge&logo=sonarqube&logoColor=white" alt="SonarQube"/>
+  <img src="https://img.shields.io/badge/Trivy-1904DA?style=for-the-badge&logo=aquasecurity&logoColor=white" alt="Trivy"/>
+  <img src="https://img.shields.io/badge/ArgoCD-EF7B4D?style=for-the-badge&logo=argo&logoColor=white" alt="ArgoCD"/>
+  <img src="https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white" alt="Redis"/>
+  <img src="https://img.shields.io/badge/AWS_EKS-FF9900?style=for-the-badge&logo=amazoneks&logoColor=white" alt="AWS EKS"/>
+  <img src="https://img.shields.io/badge/Helm-0F1689?style=for-the-badge&logo=helm&logoColor=white" alt="Helm"/>
+</p>
 
-## 📋 Overview
+---
 
-A production-ready **GitOps-Driven AI Inference Platform** that demonstrates modern cloud-native DevSecOps practices. This platform provides real-time sentiment analysis using a FastAPI-based microservice, deployed to AWS EKS via GitOps principles using Argo CD, with comprehensive CI/CD pipelines, security scanning, and monitoring.
+## 📋 Table of Contents
+
+- [Overview](#-overview)
+- [Tech Stack](#️-tech-stack)
+- [Pipeline Architecture](#-pipeline-architecture)
+- [Quick Navigation](#-quick-navigation)
+- [Pre-requisites](#-pre-requisites)
+- [Installation Guide](#-installation-guide)
+  - [Docker Installation](#1️⃣-install-docker-master-machine)
+  - [Jenkins Master Setup](#2️⃣-install-and-configure-jenkins-master-machine)
+  - [EKS Cluster Setup](#3️⃣-create-eks-cluster-on-aws-master-machine)
+  - [Jenkins Worker Setup](#4️⃣-setting-up-jenkins-worker-node)
+  - [SonarQube Setup](#5️⃣-install-and-configure-sonarqube-master-machine)
+  - [Trivy Setup](#6️⃣-install-trivy-jenkins-worker)
+  - [ArgoCD Setup](#7️⃣-install-and-configure-argocd-master-machine)
+- [Jenkins Configuration](#️-jenkins-configuration)
+- [Email Notification Setup](#-email-notification-setup)
+- [Monitoring Setup](#-monitoring-with-prometheus-and-grafana)
+- [Project Structure](#-project-structure)
+- [Clean Up](#-clean-up)
+
+---
+
+## 📖 Overview
+
+A production-ready **GitOps-Driven AI Inference Platform** demonstrating modern cloud-native DevSecOps practices. This platform provides real-time sentiment analysis using a FastAPI-based microservice, deployed to **AWS EKS** via GitOps principles using **Argo CD**, with comprehensive CI/CD pipelines, security scanning, and monitoring.
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Technology | Purpose |
-|------------|---------|
-| ![GitHub](https://img.shields.io/badge/-GitHub-181717?logo=github&logoColor=white) | Source Code Management |
-| ![Docker](https://img.shields.io/badge/-Docker-2496ED?logo=docker&logoColor=white) | Containerization |
-| ![Jenkins](https://img.shields.io/badge/-Jenkins-D24939?logo=jenkins&logoColor=white) | Continuous Integration |
-| ![OWASP](https://img.shields.io/badge/-OWASP-000000?logo=owasp&logoColor=white) | Dependency Check |
-| ![SonarQube](https://img.shields.io/badge/-SonarQube-4E9BCD?logo=sonarqube&logoColor=white) | Code Quality Analysis |
-| ![Trivy](https://img.shields.io/badge/-Trivy-1904DA?logo=aqua&logoColor=white) | Filesystem & Image Scanning |
-| ![ArgoCD](https://img.shields.io/badge/-ArgoCD-EF7B4D?logo=argo&logoColor=white) | Continuous Deployment (GitOps) |
-| ![Redis](https://img.shields.io/badge/-Redis-DC382D?logo=redis&logoColor=white) | Caching Layer |
-| ![AWS EKS](https://img.shields.io/badge/-AWS%20EKS-FF9900?logo=amazoneks&logoColor=white) | Kubernetes Cluster |
-| ![Helm](https://img.shields.io/badge/-Helm-0F1689?logo=helm&logoColor=white) | Monitoring (Prometheus & Grafana) |
+| Technology | Purpose | Description |
+|:----------:|---------|-------------|
+| **GitHub** | Code | Source code management and version control |
+| **Docker** | Containerization | Container runtime and image building |
+| **Jenkins** | CI | Continuous Integration pipeline automation |
+| **OWASP** | Security | Dependency vulnerability checking |
+| **SonarQube** | Quality | Static code analysis and quality gates |
+| **Trivy** | Security | Container and filesystem vulnerability scanning |
+| **ArgoCD** | CD | GitOps-based continuous deployment |
+| **Redis** | Caching | In-memory data caching layer |
+| **AWS EKS** | Kubernetes | Managed Kubernetes cluster on AWS |
+| **Helm** | Monitoring | Package manager for Prometheus & Grafana |
 
 ---
 
@@ -40,28 +66,28 @@ A production-ready **GitOps-Driven AI Inference Platform** that demonstrates mod
 ### CI Pipeline - Build and Push Image
 
 ```
-┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-│   Checkout   │───▶│  SonarQube   │───▶│    OWASP     │───▶│    Trivy     │───▶│ Docker Build │
-│    Code      │    │   Analysis   │    │  Dep Check   │    │  FS Scan     │    │   & Push     │
-└──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘
+┌────────────┐   ┌────────────┐   ┌────────────┐   ┌────────────┐   ┌────────────┐
+│  Checkout  │──▶│ SonarQube  │──▶│   OWASP    │──▶│   Trivy    │──▶│   Docker   │
+│    Code    │   │  Analysis  │   │ Dep Check  │   │  FS Scan   │   │ Build/Push │
+└────────────┘   └────────────┘   └────────────┘   └────────────┘   └────────────┘
 ```
 
 ### CD Pipeline - Update Application Version
 
 ```
-┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-│   Trigger    │───▶│ Update Image │───▶│  Git Commit  │
-│  from CI     │    │    Tag       │    │   & Push     │
-└──────────────┘    └──────────────┘    └──────────────┘
+┌────────────┐   ┌────────────┐   ┌────────────┐
+│  Trigger   │──▶│   Update   │──▶│ Git Commit │
+│  from CI   │   │ Image Tag  │   │   & Push   │
+└────────────┘   └────────────┘   └────────────┘
 ```
 
 ### ArgoCD - Deployment on EKS
 
 ```
-┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-│  Git Repo    │───▶│   ArgoCD     │───▶│   Sync to    │───▶│  AWS EKS     │
-│   Change     │    │   Detect     │    │   Cluster    │    │  Deployment  │
-└──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘
+┌────────────┐   ┌────────────┐   ┌────────────┐   ┌────────────┐
+│  Git Repo  │──▶│   ArgoCD   │──▶│  Sync to   │──▶│  AWS EKS   │
+│   Change   │   │   Detect   │   │  Cluster   │   │ Deployment │
+└────────────┘   └────────────┘   └────────────┘   └────────────┘
 ```
 
 ---
@@ -70,17 +96,17 @@ A production-ready **GitOps-Driven AI Inference Platform** that demonstrates mod
 
 > **Important:** Below table helps you navigate to the particular tool installation section fast.
 
-| Tech Stack | Installation Guide |
-|------------|-------------------|
-| Jenkins Master | [Install and configure Jenkins](#-install-and-configure-jenkins-master-machine) |
-| eksctl | [Install eksctl](#-install-eksctl-master-machine) |
-| ArgoCD | [Install and configure ArgoCD](#-install-and-configure-argocd-master-machine) |
-| Jenkins Worker Setup | [Install and configure Jenkins Worker Node](#-setting-up-jenkins-worker-node) |
-| OWASP Setup | [Install and configure OWASP](#-configure-owasp) |
-| SonarQube | [Install and configure SonarQube](#-install-and-configure-sonarqube-master-machine) |
-| Email Notification Setup | [Email notification setup](#-email-notification-setup) |
-| Monitoring | [Prometheus and Grafana setup using Helm](#-monitoring-with-prometheus-and-grafana-master-machine) |
-| Clean Up | [Clean up resources](#-clean-up) |
+| Tech Stack | Installation Section |
+|------------|---------------------|
+| Jenkins Master | [Install Jenkins](#2️⃣-install-and-configure-jenkins-master-machine) |
+| eksctl | [Install eksctl](#install-eksctl) |
+| ArgoCD | [Install ArgoCD](#7️⃣-install-and-configure-argocd-master-machine) |
+| Jenkins Worker | [Setup Worker Node](#4️⃣-setting-up-jenkins-worker-node) |
+| OWASP | [Configure OWASP](#configure-owasp) |
+| SonarQube | [Install SonarQube](#5️⃣-install-and-configure-sonarqube-master-machine) |
+| Email Setup | [Email Notifications](#-email-notification-setup) |
+| Monitoring | [Prometheus & Grafana](#-monitoring-with-prometheus-and-grafana) |
+| Clean Up | [Clean Up Resources](#-clean-up) |
 
 ---
 
@@ -88,38 +114,31 @@ A production-ready **GitOps-Driven AI Inference Platform** that demonstrates mod
 
 > **Note:** This project will be implemented on **N. California region (us-west-1)**.
 
-### Master Machine Setup
+### Infrastructure Requirements
 
-Create 1 Master machine on AWS with the following specifications:
-
-| Resource | Specification |
-|----------|--------------|
-| **CPU** | 2 vCPU |
-| **RAM** | 8 GB |
-| **Instance Type** | t2.large |
-| **Storage** | 29 GB |
-| **OS** | Ubuntu |
+| Machine | Instance Type | vCPU | RAM | Storage | Purpose |
+|---------|--------------|------|-----|---------|---------|
+| Master | t2.large | 2 | 8 GB | 29 GB | Jenkins Master, eksctl, EKS management |
+| Worker | t2.large | 2 | 8 GB | 29 GB | Jenkins Worker, Build agents |
 
 ### Required Security Group Ports
 
-Open the following ports in the security group of the master machine (also attach the same security group to Jenkins worker node):
-
-| Port | Service |
-|------|---------|
-| 22 | SSH |
-| 80 | HTTP |
-| 443 | HTTPS |
-| 465 | SMTPS |
-| 6443 | Kubernetes API |
-| 8080 | Jenkins |
-| 9000 | SonarQube |
-| 30000-32767 | NodePort Services |
-
-> **Note:** We are creating this master machine because we will configure Jenkins master, eksctl, and EKS cluster creation from here.
+| Port | Protocol | Service |
+|------|----------|---------|
+| 22 | TCP | SSH |
+| 80 | TCP | HTTP |
+| 443 | TCP | HTTPS |
+| 465 | TCP | SMTPS (Email) |
+| 6443 | TCP | Kubernetes API |
+| 8080 | TCP | Jenkins |
+| 9000 | TCP | SonarQube |
+| 30000-32767 | TCP | NodePort Services |
 
 ---
 
-## 🐳 Install Docker (Master Machine)
+## 🚀 Installation Guide
+
+### 1️⃣ Install Docker (Master Machine)
 
 ```bash
 sudo apt-get update
@@ -127,22 +146,21 @@ sudo apt-get install docker.io -y
 sudo usermod -aG docker ubuntu && newgrp docker
 ```
 
-> **Note:** `newgrp docker` will refresh the group config, hence no need to restart the EC2 machine.
+> **Note:** `newgrp docker` refreshes the group config - no restart needed.
 
 ---
 
-## 🔧 Install and Configure Jenkins (Master Machine)
+### 2️⃣ Install and Configure Jenkins (Master Machine)
 
 ```bash
-# Update system and install Java
+# Update and install Java
 sudo apt update -y
 sudo apt install fontconfig openjdk-17-jre -y
 
-# Add Jenkins repository key
+# Add Jenkins repository
 sudo wget -O /usr/share/keyrings/jenkins-keyring.asc \
   https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
 
-# Add Jenkins repository
 echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc]" \
   https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
   /etc/apt/sources.list.d/jenkins.list > /dev/null
@@ -152,17 +170,13 @@ sudo apt-get update -y
 sudo apt-get install jenkins -y
 ```
 
-Now, access Jenkins Master on the browser on port **8080** and configure it.
+**Access Jenkins:** `http://<master-public-ip>:8080`
 
 ---
 
-## ☁️ Create EKS Cluster on AWS (Master Machine)
+### 3️⃣ Create EKS Cluster on AWS (Master Machine)
 
-### Prerequisites
-- IAM user with access keys and secret access keys
-- AWS CLI configured
-
-### Install AWS CLI
+#### Install AWS CLI
 
 ```bash
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
@@ -172,7 +186,7 @@ sudo ./aws/install
 aws configure
 ```
 
-### Install kubectl (Master Machine)
+#### Install kubectl
 
 ```bash
 curl -o kubectl https://amazon-eks.s3.us-west-2.amazonaws.com/1.19.6/2021-01-05/bin/linux/amd64/kubectl
@@ -181,7 +195,7 @@ sudo mv ./kubectl /usr/local/bin
 kubectl version --short --client
 ```
 
-### Install eksctl (Master Machine)
+#### Install eksctl
 
 ```bash
 curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
@@ -189,7 +203,7 @@ sudo mv /tmp/eksctl /usr/local/bin
 eksctl version
 ```
 
-### Create EKS Cluster (Master Machine)
+#### Create EKS Cluster
 
 ```bash
 eksctl create cluster --name=wanderlust \
@@ -198,7 +212,7 @@ eksctl create cluster --name=wanderlust \
                       --without-nodegroup
 ```
 
-### Associate IAM OIDC Provider (Master Machine)
+#### Associate IAM OIDC Provider
 
 ```bash
 eksctl utils associate-iam-oidc-provider \
@@ -207,7 +221,7 @@ eksctl utils associate-iam-oidc-provider \
   --approve
 ```
 
-### Create Nodegroup (Master Machine)
+#### Create Node Group
 
 ```bash
 eksctl create nodegroup --cluster=wanderlust \
@@ -222,33 +236,28 @@ eksctl create nodegroup --cluster=wanderlust \
                         --ssh-public-key=eks-nodegroup-key
 ```
 
-> **Note:** Make sure the ssh-public-key `eks-nodegroup-key` is available in your AWS account.
+> **Note:** Ensure `eks-nodegroup-key` exists in your AWS account.
 
 ---
 
-## 👷 Setting up Jenkins Worker Node
+### 4️⃣ Setting up Jenkins Worker Node
 
-### Create Jenkins Worker EC2 Instance
-
-Create a new EC2 instance with:
-- **CPU:** 2 vCPU
-- **RAM:** 8 GB (t2.large)
+#### Create EC2 Instance
+- **Instance Type:** t2.large (2 vCPU, 8GB RAM)
 - **Storage:** 29 GB
 
-### Install Java on Worker Node
+#### Install Java
 
 ```bash
 sudo apt update -y
 sudo apt install fontconfig openjdk-17-jre -y
 ```
 
-### Attach IAM Role
+#### Attach IAM Role
+1. Select Jenkins Worker EC2 → **Actions** → **Security** → **Modify IAM role**
+2. Attach role with **Administrator Access**
 
-1. Create an IAM role with **Administrator Access**
-2. Attach it to the Jenkins worker node:
-   - Select Jenkins worker node EC2 instance → **Actions** → **Security** → **Modify IAM role**
-
-### Configure AWS CLI (Worker Node)
+#### Configure AWS CLI
 
 ```bash
 sudo su
@@ -259,34 +268,30 @@ sudo ./aws/install
 aws configure
 ```
 
-### Generate SSH Keys (Master Machine)
+#### Generate SSH Keys (On Master)
 
 ```bash
 ssh-keygen
+# Copy ~/.ssh/id_rsa.pub content to Worker's ~/.ssh/authorized_keys
 ```
 
-Copy the content of the public key (`~/.ssh/id_rsa.pub`) and paste it into the `~/.ssh/authorized_keys` file of the Jenkins worker node.
+#### Add Node in Jenkins
 
-### Add Worker Node in Jenkins
-
-1. Go to Jenkins Master → **Manage Jenkins** → **Nodes** → **Add node**
-2. Configure the node:
+Navigate to **Manage Jenkins** → **Nodes** → **Add Node**
 
 | Setting | Value |
 |---------|-------|
-| **Name** | Node |
-| **Type** | Permanent Agent |
-| **Number of executors** | 2 |
-| **Remote root directory** | /home/ubuntu |
-| **Labels** | Node |
-| **Usage** | Only build jobs with label expressions matching this node |
-| **Launch method** | Via SSH |
-| **Host** | `<public-ip-worker-jenkins>` |
-| **Credentials** | Add SSH credentials with private key |
-| **Host Key Verification** | Non verifying Verification Strategy |
-| **Availability** | Keep this agent online as much as possible |
+| Name | Node |
+| Type | Permanent Agent |
+| Executors | 2 |
+| Remote Root Directory | /home/ubuntu |
+| Labels | Node |
+| Launch Method | Via SSH |
+| Host | `<worker-public-ip>` |
+| Credentials | SSH with private key |
+| Host Key Verification | Non verifying |
 
-### Install Docker (Jenkins Worker)
+#### Install Docker on Worker
 
 ```bash
 sudo apt install docker.io -y
@@ -295,19 +300,18 @@ sudo usermod -aG docker ubuntu && newgrp docker
 
 ---
 
-## 📊 Install and Configure SonarQube (Master Machine)
+### 5️⃣ Install and Configure SonarQube (Master Machine)
 
 ```bash
 docker run -itd --name SonarQube-Server -p 9000:9000 sonarqube:lts-community
 ```
 
-Access SonarQube on `http://<master-ip>:9000`
-- **Default Username:** admin
-- **Default Password:** admin
+**Access:** `http://<master-ip>:9000`  
+**Default Credentials:** admin / admin
 
 ---
 
-## 🔍 Install Trivy (Jenkins Worker)
+### 6️⃣ Install Trivy (Jenkins Worker)
 
 ```bash
 sudo apt-get install wget apt-transport-https gnupg lsb-release -y
@@ -319,165 +323,85 @@ sudo apt-get install trivy -y
 
 ---
 
-## 🎯 Install and Configure ArgoCD (Master Machine)
+### 7️⃣ Install and Configure ArgoCD (Master Machine)
 
-### Create ArgoCD Namespace
+#### Create Namespace and Install
 
 ```bash
 kubectl create namespace argocd
-```
-
-### Apply ArgoCD Manifest
-
-```bash
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-```
-
-### Verify Pods are Running
-
-```bash
 watch kubectl get pods -n argocd
 ```
 
-### Install ArgoCD CLI
+#### Install ArgoCD CLI
 
 ```bash
 sudo curl --silent --location -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/download/v2.4.7/argocd-linux-amd64
 sudo chmod +x /usr/local/bin/argocd
 ```
 
-### Expose ArgoCD Server
+#### Expose ArgoCD Server
 
 ```bash
-# Check ArgoCD services
-kubectl get svc -n argocd
-
-# Change service from ClusterIP to NodePort
 kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "NodePort"}}'
-
-# Confirm service is patched
 kubectl get svc -n argocd
 ```
 
-### Get ArgoCD Initial Password
+#### Get Initial Password
 
 ```bash
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
 ```
 
-Access ArgoCD on `https://<worker-public-ip>:<nodeport>`
-- **Username:** admin
-- **Password:** (from above command)
-
-> **Tip:** Go to **User Info** and update your ArgoCD password after first login.
+**Access:** `https://<worker-public-ip>:<nodeport>`  
+**Username:** admin
 
 ---
 
-## 📧 Email Notification Setup
+## ⚙️ Jenkins Configuration
 
-### Allow SMTP Port
+### Required Plugins
 
-Go to your Jenkins Master EC2 instance and allow port **465** for SMTPS.
+Install via **Manage Jenkins** → **Plugins** → **Available**:
 
-### Generate Gmail App Password
-
-> **Important:** Make sure 2-step verification is enabled on your Gmail account.
-
-1. Open Gmail → **Manage your Google Account** → **Security**
-2. Search for **App passwords**
-3. Create an app password for Jenkins
-
-### Configure Email in Jenkins
-
-1. Go to **Manage Jenkins** → **Credentials** → Add username and password for email notification
-2. Go to **Manage Jenkins** → **System** → Search for **Extended E-mail Notification**
-
-Configure the following:
-| Setting | Value |
-|---------|-------|
-| **SMTP Server** | smtp.gmail.com |
-| **SMTP Port** | 465 |
-| **Credentials** | Your Gmail credentials |
-| **Use SSL** | ✅ Enabled |
-
-3. Scroll down and configure **E-mail Notification** section similarly
-
----
-
-## 🔌 Jenkins Plugins Installation
-
-Go to **Manage Jenkins** → **Plugins** → **Available plugins** and install:
-
-- OWASP Dependency-Check
-- SonarQube Scanner
-- Docker
-- Pipeline: Stage View
+- ✅ OWASP Dependency-Check
+- ✅ SonarQube Scanner
+- ✅ Docker Pipeline
+- ✅ Pipeline: Stage View
 
 ### Configure OWASP
 
-1. Go to **Manage Jenkins** → **Tools**
-2. Add OWASP Dependency-Check installation
-3. Name: `DP-Check`
-4. Install automatically: ✅
+**Manage Jenkins** → **Tools** → **Dependency-Check installations**
+- Name: `DP-Check`
+- Install automatically: ✅
 
 ### Configure SonarQube
 
-#### Create SonarQube Token
+1. **Create Token in SonarQube:**
+   - Administration → Security → Users → Token
 
-1. Login to SonarQube
-2. Navigate to **Administration** → **Security** → **Users** → **Token**
-3. Generate a new token for Jenkins
+2. **Add Credentials in Jenkins:**
+   - Manage Jenkins → Credentials → Add Secret text
 
-#### Add SonarQube Credentials in Jenkins
+3. **Configure Scanner:**
+   - Manage Jenkins → Tools → SonarQube Scanner
 
-1. Go to **Manage Jenkins** → **Credentials**
-2. Add SonarQube token as **Secret text**
+4. **Add SonarQube Server:**
+   - Manage Jenkins → System → SonarQube installations
 
-#### Configure SonarQube Scanner
+5. **Create Webhook in SonarQube:**
+   - Administration → Webhooks → Create
+   - URL: `http://<jenkins-ip>:8080/sonarqube-webhook/`
 
-1. Go to **Manage Jenkins** → **Tools**
-2. Add SonarQube Scanner installation
+### Add Credentials
 
-#### Configure SonarQube Server
+| Credential | Type | ID |
+|------------|------|-----|
+| GitHub | Username/PAT | github-credentials |
+| Docker Hub | Username/Password | docker-credentials |
+| SonarQube | Secret text | sonarqube-token |
 
-1. Go to **Manage Jenkins** → **System**
-2. Search for **SonarQube installations**
-3. Add your SonarQube server URL
-
-### Configure SonarQube Webhook
-
-1. Login to SonarQube
-2. Go to **Administration** → **Webhooks** → **Create**
-3. URL: `http://<jenkins-ip>:8080/sonarqube-webhook/`
-
-### Add GitHub Credentials
-
-1. Go to **Manage Jenkins** → **Credentials**
-2. Add GitHub credentials with Personal Access Token as password
-
-### Add Docker Hub Credentials
-
-1. Go to **Manage Jenkins** → **Credentials**
-2. Add Docker Hub username and password/token
-
----
-
-## 🏗️ Pipeline Setup
-
-### Create CI Pipeline
-
-1. Create a new Pipeline job named `AI-Inference-CI`
-2. Configure pipeline from SCM (Git)
-3. Script path: `Jenkinsfile`
-
-### Create CD Pipeline
-
-1. Create a new Pipeline job named `AI-Inference-CD`
-2. Configure pipeline from SCM (Git)
-3. Script path: `Jenkinsfile.cd`
-4. Enable: **Build after other projects are built** → `AI-Inference-CI`
-
-### Fix Docker Socket Permission (Jenkins Worker)
+### Fix Docker Socket Permission
 
 ```bash
 chmod 777 /var/run/docker.sock
@@ -485,60 +409,62 @@ chmod 777 /var/run/docker.sock
 
 ---
 
-## 🔗 Connect EKS Cluster to ArgoCD
+## 📧 Email Notification Setup
 
-### Login to ArgoCD from CLI
+### Gmail App Password
 
-```bash
-argocd login <argocd-url>:<port> --username admin
-```
+> **Important:** Enable 2-Step Verification first!
 
-### Check Available Clusters
+1. Gmail → **Manage Google Account** → **Security**
+2. Search **App passwords** → Create for Jenkins
 
-```bash
-argocd cluster list
-```
+### Configure in Jenkins
 
-### Get Cluster Context Name
-
-```bash
-kubectl config get-contexts
-```
-
-### Add Cluster to ArgoCD
-
-```bash
-argocd cluster add <cluster-context-name> --name wanderlust-eks-cluster
-```
-
-### Verify in ArgoCD Console
-
-Go to **Settings** → **Clusters** and verify your cluster is added.
-
-### Connect Git Repository
-
-1. Go to **Settings** → **Repositories** → **Connect Repo**
-2. Add your GitOps manifests repository
-
-### Create ArgoCD Application
-
-1. Go to **Applications** → **New App**
-2. Configure:
+**Manage Jenkins** → **System** → **Extended E-mail Notification**
 
 | Setting | Value |
 |---------|-------|
-| **Application Name** | ai-inference |
-| **Project** | default |
-| **Sync Policy** | Automatic |
-| **Auto-Create Namespace** | ✅ |
-| **Repository URL** | Your GitOps repo URL |
-| **Path** | apps/ai-inference/overlays/dev |
-| **Cluster URL** | Your EKS cluster |
-| **Namespace** | ai-inference |
+| SMTP Server | smtp.gmail.com |
+| SMTP Port | 465 |
+| Use SSL | ✅ |
+| Credentials | Gmail app password |
 
 ---
 
-## 📊 Monitoring with Prometheus and Grafana (Master Machine)
+## 🔗 Connect EKS to ArgoCD
+
+```bash
+# Login to ArgoCD
+argocd login <argocd-url>:<port> --username admin
+
+# List clusters
+argocd cluster list
+
+# Get cluster context
+kubectl config get-contexts
+
+# Add cluster
+argocd cluster add <cluster-context> --name wanderlust-eks-cluster
+```
+
+### Create ArgoCD Application
+
+**Applications** → **New App**
+
+| Setting | Value |
+|---------|-------|
+| Name | ai-inference |
+| Project | default |
+| Sync Policy | Automatic |
+| Auto-Create Namespace | ✅ |
+| Repository URL | Your GitOps repo |
+| Path | apps/ai-inference/overlays/dev |
+| Cluster | Your EKS cluster |
+| Namespace | ai-inference |
+
+---
+
+## 📊 Monitoring with Prometheus and Grafana
 
 ### Install Helm
 
@@ -548,55 +474,30 @@ chmod 700 get_helm.sh
 ./get_helm.sh
 ```
 
-### Add Helm Repositories
+### Add Repositories
 
 ```bash
 helm repo add stable https://charts.helm.sh/stable
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 ```
 
-### Create Prometheus Namespace
-
-```bash
-kubectl create namespace prometheus
-kubectl get ns
-```
-
 ### Install Prometheus Stack
 
 ```bash
+kubectl create namespace prometheus
 helm install stable prometheus-community/kube-prometheus-stack -n prometheus
 ```
 
-### Verify Installation
+### Expose Services
 
 ```bash
-kubectl get pods -n prometheus
-kubectl get svc -n prometheus
-```
-
-### Expose Prometheus and Grafana
-
-#### Expose Prometheus
-
-```bash
+# Prometheus
 kubectl edit svc stable-kube-prometheus-sta-prometheus -n prometheus
-```
+# Change type: ClusterIP → type: NodePort
 
-Change `type: ClusterIP` to `type: NodePort`
-
-#### Expose Grafana
-
-```bash
+# Grafana
 kubectl edit svc stable-grafana -n prometheus
-```
-
-Change `type: ClusterIP` to `type: NodePort`
-
-### Verify Services
-
-```bash
-kubectl get svc -n prometheus
+# Change type: ClusterIP → type: NodePort
 ```
 
 ### Get Grafana Password
@@ -605,19 +506,65 @@ kubectl get svc -n prometheus
 kubectl get secret --namespace prometheus stable-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
 ```
 
-- **Username:** admin
+**Username:** admin
 
-### Access Dashboards
+### Recommended Dashboards
 
-- **Prometheus:** `http://<worker-ip>:<prometheus-nodeport>`
-- **Grafana:** `http://<worker-ip>:<grafana-nodeport>`
+| Dashboard ID | Description |
+|-------------|-------------|
+| 3119 | Kubernetes Cluster Monitoring |
+| 6417 | Kubernetes Pod Monitoring |
+| 15757 | Kubernetes Views (Global) |
 
-### Recommended Grafana Dashboards
+---
 
-Import these dashboard IDs:
-- **3119** - Kubernetes Cluster Monitoring
-- **6417** - Kubernetes Pod Monitoring
-- **15757** - Kubernetes Views (Global)
+## 📁 Project Structure
+
+```
+GitOps-Driven-AI-Inference-Platform/
+├── gitops-ai-app/                    # Application Source Code
+│   ├── src/
+│   │   ├── main.py                   # FastAPI entry point
+│   │   ├── config.py                 # Configuration
+│   │   ├── api/
+│   │   │   └── predict.py            # Prediction endpoint
+│   │   ├── models/
+│   │   │   └── sentiment_model.py    # ML model
+│   │   ├── services/
+│   │   │   └── inference_service.py  # Business logic
+│   │   └── utils/
+│   │       └── preprocessing.py      # Text preprocessing
+│   ├── tests/                        # Unit tests
+│   ├── Dockerfile                    # Multi-stage build
+│   ├── Jenkinsfile                   # CI pipeline
+│   ├── Jenkinsfile.pr                # PR pipeline
+│   └── requirements.txt              # Dependencies
+│
+├── gitops-manifests/                 # Kubernetes Manifests
+│   ├── argocd/
+│   │   ├── root-app.yaml             # App of Apps
+│   │   └── projects.yaml             # RBAC
+│   ├── apps/
+│   │   └── ai-inference/
+│   │       ├── base/                 # Base manifests
+│   │       └── overlays/
+│   │           ├── dev/
+│   │           ├── staging/
+│   │           └── prod/
+│   └── monitoring/                   # Prometheus & Grafana
+│
+└── README.md
+```
+
+---
+
+## 🌍 Environments
+
+| Environment | Namespace | Replicas | Auto-Sync |
+|-------------|-----------|----------|-----------|
+| Dev | ai-inference-dev | 1 | ✅ Yes |
+| Staging | ai-inference-staging | 2 | ✅ Yes |
+| Production | ai-inference-prod | 3 | ⚠️ Manual |
 
 ---
 
@@ -629,12 +576,13 @@ Import these dashboard IDs:
 eksctl delete cluster --name=wanderlust --region=us-west-1
 ```
 
-### Delete EC2 Instances
+### Terminate EC2 Instances
 
-1. Terminate Jenkins Master EC2 instance
-2. Terminate Jenkins Worker EC2 instance
+1. AWS Console → EC2 → Instances
+2. Select Master & Worker instances
+3. Instance State → Terminate
 
-### Clean Up Docker Resources
+### Clean Docker Resources
 
 ```bash
 docker stop $(docker ps -aq)
@@ -644,105 +592,12 @@ docker rmi $(docker images -q)
 
 ---
 
-## 📁 Repository Structure
-
-```
-GitOps-Driven-AI-Inference-Platform/
-│
-├── gitops-ai-app/              # 📦 Application Source Code
-│   ├── src/                    # Python FastAPI application
-│   │   ├── main.py             # Application entry point
-│   │   ├── config.py           # Configuration management
-│   │   ├── api/                # REST API endpoints
-│   │   ├── models/             # ML model definitions
-│   │   ├── services/           # Business logic layer
-│   │   └── utils/              # Utility functions
-│   ├── tests/                  # Unit tests
-│   ├── Dockerfile              # Multi-stage production build
-│   ├── Jenkinsfile             # CI pipeline
-│   ├── Jenkinsfile.pr          # PR validation pipeline
-│   └── requirements.txt        # Python dependencies
-│
-├── gitops-manifests/           # 🎯 Kubernetes Manifests (GitOps)
-│   ├── argocd/                 # Argo CD configuration
-│   │   ├── root-app.yaml       # App-of-Apps bootstrap
-│   │   └── projects.yaml       # RBAC definitions
-│   ├── apps/                   # Application manifests
-│   │   └── ai-inference/
-│   │       ├── base/           # Base Kustomize configs
-│   │       └── overlays/       # Environment overlays
-│   │           ├── dev/
-│   │           ├── staging/
-│   │           └── prod/
-│   └── monitoring/             # Observability stack
-│
-└── README.md                   # This file
-```
-
----
-
-## 🌍 Environments
-
-| Environment | Namespace | Replicas | Auto-Sync | Purpose |
-|-------------|-----------|----------|-----------|---------|
-| **Dev** | ai-inference-dev | 1 | ✅ Yes | Development/Testing |
-| **Staging** | ai-inference-staging | 2 | ✅ Yes | Pre-production |
-| **Production** | ai-inference-prod | 3 | ⚠️ Manual | Live environment |
-
----
-
-## 📡 API Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/` | GET | Welcome message |
-| `/health` | GET | Liveness probe |
-| `/ready` | GET | Readiness probe |
-| `/metrics` | GET | Prometheus metrics |
-| `/api/v1/predict` | POST | Single prediction |
-| `/api/v1/predict/batch` | POST | Batch predictions |
-
----
-
-## 🔐 Security Features
-
-- ✅ **OWASP Dependency Check** - Vulnerability scanning for dependencies
-- ✅ **Trivy Scanner** - Container and filesystem scanning
-- ✅ **SonarQube** - Code quality and security analysis
-- ✅ **Non-root containers** - Security best practices
-- ✅ **Resource limits** - CPU and memory constraints
-- ✅ **Network policies** - Namespace isolation
-- ✅ **RBAC** - Role-based access control
-
----
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
----
-
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🙏 Acknowledgments
-
-- [FastAPI](https://fastapi.tiangolo.com/) - Modern Python web framework
-- [Argo CD](https://argoproj.github.io/cd/) - Declarative GitOps CD
-- [Jenkins](https://www.jenkins.io/) - CI/CD automation
-- [Prometheus](https://prometheus.io/) - Monitoring system
-- [Grafana](https://grafana.com/) - Visualization platform
-- [AWS EKS](https://aws.amazon.com/eks/) - Managed Kubernetes
-
----
-
 <p align="center">
-  Made with ❤️ using GitOps & DevSecOps principles
+  <b>Made with ❤️ using GitOps & DevSecOps principles</b>
 </p>
