@@ -1,0 +1,180 @@
+# =============================================================================
+# Argo CD Root Application (App-of-Apps Pattern)
+# This is the bootstrap application that manages all other applications
+# =============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root-app
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    app.kubernetes.io/name: root-app
+    app.kubernetes.io/part-of: gitops-platform
+spec:
+  project: default
+  
+  source:
+    repoURL: https://github.com/your-org/gitops-manifests.git
+    targetRevision: main
+    path: apps
+    directory:
+      recurse: true
+      include: '*/base/kustomization.yaml'
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - Validate=true
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+---
+# =============================================================================
+# AI Inference Application
+# =============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ai-inference-dev
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: ai-inference
+    app.kubernetes.io/env: dev
+spec:
+  project: ai-inference
+  
+  source:
+    repoURL: https://github.com/your-org/gitops-manifests.git
+    targetRevision: main
+    path: apps/ai-inference/overlays/dev
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ai-inference-dev
+  
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 1m
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ai-inference-staging
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: ai-inference
+    app.kubernetes.io/env: staging
+spec:
+  project: ai-inference
+  
+  source:
+    repoURL: https://github.com/your-org/gitops-manifests.git
+    targetRevision: main
+    path: apps/ai-inference/overlays/staging
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ai-inference-staging
+  
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 1m
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ai-inference-prod
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: ai-inference
+    app.kubernetes.io/env: prod
+spec:
+  project: ai-inference
+  
+  source:
+    repoURL: https://github.com/your-org/gitops-manifests.git
+    targetRevision: main
+    path: apps/ai-inference/overlays/prod
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ai-inference-prod
+  
+  # Production requires manual sync
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+      - Validate=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m
+
+---
+# =============================================================================
+# Monitoring Stack Application
+# =============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: monitoring
+spec:
+  project: platform
+  
+  source:
+    repoURL: https://github.com/your-org/gitops-manifests.git
+    targetRevision: main
+    path: monitoring
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

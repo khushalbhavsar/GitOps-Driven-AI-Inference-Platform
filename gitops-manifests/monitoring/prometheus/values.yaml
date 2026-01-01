@@ -1,0 +1,222 @@
+# =============================================================================
+# Prometheus Helm Values
+# Used with prometheus-community/kube-prometheus-stack
+# =============================================================================
+
+# Global settings
+fullnameOverride: prometheus
+
+# Prometheus Operator
+prometheusOperator:
+  enabled: true
+  resources:
+    limits:
+      cpu: 200m
+      memory: 200Mi
+    requests:
+      cpu: 100m
+      memory: 100Mi
+
+# Prometheus Server
+prometheus:
+  enabled: true
+  
+  prometheusSpec:
+    replicas: 2
+    
+    retention: 15d
+    retentionSize: 50GB
+    
+    resources:
+      requests:
+        memory: 2Gi
+        cpu: 500m
+      limits:
+        memory: 4Gi
+        cpu: 1000m
+    
+    # Storage
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp3
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 100Gi
+    
+    # ServiceMonitor selectors
+    serviceMonitorSelector:
+      matchLabels:
+        release: prometheus
+    
+    serviceMonitorNamespaceSelector:
+      matchNames:
+        - ai-inference-dev
+        - ai-inference-staging
+        - ai-inference-prod
+        - monitoring
+    
+    # Pod Monitor selectors
+    podMonitorSelector:
+      matchLabels:
+        release: prometheus
+    
+    # Additional scrape configs for ai-inference
+    additionalScrapeConfigs:
+      - job_name: 'ai-inference-pods'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - ai-inference-dev
+                - ai-inference-staging
+                - ai-inference-prod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: pod
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: replace
+            target_label: app
+
+# Alertmanager
+alertmanager:
+  enabled: true
+  
+  alertmanagerSpec:
+    replicas: 2
+    
+    resources:
+      requests:
+        memory: 100Mi
+        cpu: 50m
+      limits:
+        memory: 200Mi
+        cpu: 100m
+    
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp3
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi
+  
+  # Alert configuration
+  config:
+    global:
+      resolve_timeout: 5m
+      slack_api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+    
+    route:
+      group_by: ['alertname', 'namespace', 'severity']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+      receiver: 'slack-notifications'
+      routes:
+        - match:
+            severity: critical
+          receiver: 'pagerduty-critical'
+        - match:
+            severity: warning
+          receiver: 'slack-notifications'
+    
+    receivers:
+      - name: 'slack-notifications'
+        slack_configs:
+          - channel: '#ai-platform-alerts'
+            send_resolved: true
+            title: '{{ template "slack.default.title" . }}'
+            text: '{{ template "slack.default.text" . }}'
+      
+      - name: 'pagerduty-critical'
+        pagerduty_configs:
+          - service_key: 'YOUR_PAGERDUTY_KEY'
+            send_resolved: true
+
+# Grafana (usually deployed separately)
+grafana:
+  enabled: false
+
+# Node Exporter
+nodeExporter:
+  enabled: true
+
+# Kube State Metrics
+kubeStateMetrics:
+  enabled: true
+
+# PrometheusRule for AI Inference alerts
+additionalPrometheusRulesMap:
+  ai-inference-rules:
+    groups:
+      - name: ai-inference
+        rules:
+          # High error rate
+          - alert: AIInferenceHighErrorRate
+            expr: |
+              sum(rate(http_requests_total{app="ai-inference", status=~"5.."}[5m])) 
+              / sum(rate(http_requests_total{app="ai-inference"}[5m])) > 0.05
+            for: 5m
+            labels:
+              severity: critical
+              service: ai-inference
+            annotations:
+              summary: "High error rate in AI Inference service"
+              description: "Error rate is {{ $value | humanizePercentage }} in {{ $labels.namespace }}"
+          
+          # High latency
+          - alert: AIInferenceHighLatency
+            expr: |
+              histogram_quantile(0.95, 
+                sum(rate(http_request_duration_seconds_bucket{app="ai-inference"}[5m])) by (le)
+              ) > 2
+            for: 5m
+            labels:
+              severity: warning
+              service: ai-inference
+            annotations:
+              summary: "High latency in AI Inference service"
+              description: "P95 latency is {{ $value | humanizeDuration }}"
+          
+          # Low replica count
+          - alert: AIInferenceLowReplicas
+            expr: |
+              kube_deployment_status_replicas_available{deployment="ai-inference"} < 2
+            for: 5m
+            labels:
+              severity: warning
+              service: ai-inference
+            annotations:
+              summary: "AI Inference has low replica count"
+              description: "Only {{ $value }} replicas available in {{ $labels.namespace }}"
+          
+          # Pod not ready
+          - alert: AIInferencePodNotReady
+            expr: |
+              kube_pod_status_ready{pod=~"ai-inference.*", condition="true"} == 0
+            for: 5m
+            labels:
+              severity: warning
+              service: ai-inference
+            annotations:
+              summary: "AI Inference pod not ready"
+              description: "Pod {{ $labels.pod }} is not ready"

@@ -1,0 +1,29 @@
+# =============================================================================
+# ServiceMonitor for Prometheus
+# Enables Prometheus to scrape metrics from ai-inference pods
+# =============================================================================
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ai-inference
+  labels:
+    app: ai-inference
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: ai-inference
+  namespaceSelector:
+    matchNames:
+      - ai-inference-prod
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s
+      scheme: http
+      honorLabels: true
+      metricRelabelings:
+        - sourceLabels: [__name__]
+          regex: 'python_gc_.*'
+          action: drop

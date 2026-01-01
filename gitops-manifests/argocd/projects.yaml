@@ -1,0 +1,108 @@
+# =============================================================================
+# Argo CD Projects Configuration
+# Projects provide logical grouping and access control for applications
+# =============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: ai-inference
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: AI Inference Service Project
+
+  # Source repositories
+  sourceRepos:
+    - https://github.com/your-org/gitops-manifests.git
+    - https://github.com/your-org/gitops-ai-app.git
+
+  # Destination clusters and namespaces
+  destinations:
+    - namespace: ai-inference-dev
+      server: https://kubernetes.default.svc
+    - namespace: ai-inference-staging
+      server: https://kubernetes.default.svc
+    - namespace: ai-inference-prod
+      server: https://kubernetes.default.svc
+
+  # Allowed cluster resources
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+    - group: 'rbac.authorization.k8s.io'
+      kind: ClusterRole
+    - group: 'rbac.authorization.k8s.io'
+      kind: ClusterRoleBinding
+
+  # Allowed namespace resources
+  namespaceResourceWhitelist:
+    - group: ''
+      kind: '*'
+    - group: 'apps'
+      kind: '*'
+    - group: 'autoscaling'
+      kind: '*'
+    - group: 'networking.k8s.io'
+      kind: '*'
+    - group: 'policy'
+      kind: '*'
+
+  # Role definitions
+  roles:
+    - name: developer
+      description: Developer access - can sync and view
+      policies:
+        - p, proj:ai-inference:developer, applications, get, ai-inference/*, allow
+        - p, proj:ai-inference:developer, applications, sync, ai-inference/ai-inference-dev, allow
+        - p, proj:ai-inference:developer, applications, sync, ai-inference/ai-inference-staging, allow
+      groups:
+        - ai-inference-developers
+
+    - name: admin
+      description: Admin access - full control
+      policies:
+        - p, proj:ai-inference:admin, applications, *, ai-inference/*, allow
+        - p, proj:ai-inference:admin, repositories, *, ai-inference/*, allow
+      groups:
+        - ai-inference-admins
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: Platform Infrastructure Project
+
+  sourceRepos:
+    - https://github.com/your-org/gitops-manifests.git
+    - https://prometheus-community.github.io/helm-charts
+    - https://grafana.github.io/helm-charts
+
+  destinations:
+    - namespace: monitoring
+      server: https://kubernetes.default.svc
+    - namespace: logging
+      server: https://kubernetes.default.svc
+    - namespace: ingress-nginx
+      server: https://kubernetes.default.svc
+
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+
+  roles:
+    - name: platform-admin
+      description: Platform admin - full access to infrastructure
+      policies:
+        - p, proj:platform:platform-admin, applications, *, platform/*, allow
+      groups:
+        - platform-admins

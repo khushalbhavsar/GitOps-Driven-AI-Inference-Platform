@@ -1,0 +1,35 @@
+# =============================================================================
+# Grafana Dashboards ConfigMap
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  ai-inference-dashboard.json: |
+    {
+      "annotations": {
+        "list": []
+      },
+      "editable": true,
+      "gnetId": null,
+      "graphTooltip": 0,
+      "id": null,
+      "links": [],
+      "panels": [
+        {
+          "title": "Request Rate",
+          "type": "stat",
+          "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0}
+        }
+      ],
+      "refresh": "30s",
+      "schemaVersion": 30,
+      "style": "dark",
+      "tags": ["ai-inference"],
+      "title": "AI Inference Dashboard",
+      "uid": "ai-inference"
+    }

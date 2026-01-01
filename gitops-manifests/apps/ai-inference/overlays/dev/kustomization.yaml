@@ -1,0 +1,38 @@
+# =============================================================================
+# Kustomization - Development Overlay
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: ai-inference-dev
+
+namespace: ai-inference-dev
+
+# Common labels for dev environment
+commonLabels:
+  environment: dev
+  app.kubernetes.io/env: dev
+
+# Base configuration
+resources:
+  - ../../base
+
+# Patches for dev environment
+patches:
+  - path: replicas.yaml
+
+# Image override for dev
+images:
+  - name: ai-inference
+    newName: your-registry.com/ai-inference
+    newTag: dev-latest
+
+# ConfigMap for dev environment
+configMapGenerator:
+  - name: ai-inference-config
+    behavior: create
+    literals:
+      - LOG_LEVEL=DEBUG
+      - DEBUG=true
+      - WORKERS=2

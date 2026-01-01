@@ -1,0 +1,233 @@
+// =============================================================================
+// Jenkins CI Pipeline - Pull Request Validation
+// Handles: Build verification, Tests, Code quality checks
+// =============================================================================
+
+pipeline {
+    agent {
+        kubernetes {
+            yaml '''
+                apiVersion: v1
+                kind: Pod
+                spec:
+                  containers:
+                  - name: python
+                    image: python:3.11-slim
+                    command:
+                    - cat
+                    tty: true
+                    resources:
+                      requests:
+                        memory: "512Mi"
+                        cpu: "250m"
+                      limits:
+                        memory: "1Gi"
+                        cpu: "500m"
+                  - name: docker
+                    image: docker:24-dind
+                    securityContext:
+                      privileged: true
+                    volumeMounts:
+                    - name: docker-socket
+                      mountPath: /var/run/docker.sock
+                  volumes:
+                  - name: docker-socket
+                    emptyDir: {}
+            '''
+        }
+    }
+
+    environment {
+        APP_NAME = 'ai-inference'
+        GIT_COMMIT_SHORT = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+    }
+
+    options {
+        timeout(time: 20, unit: 'MINUTES')
+        disableConcurrentBuilds(abortPrevious: true)
+        buildDiscarder(logRotator(numToKeepStr: '5'))
+        timestamps()
+    }
+
+    stages {
+        // =====================================================================
+        // Stage 1: Checkout
+        // =====================================================================
+        stage('Checkout') {
+            steps {
+                checkout scm
+                
+                script {
+                    echo "PR validation for commit: ${env.GIT_COMMIT_SHORT}"
+                    
+                    // Get changed files for targeted testing
+                    env.CHANGED_FILES = sh(
+                        script: "git diff --name-only origin/main...HEAD || echo ''",
+                        returnStdout: true
+                    ).trim()
+                    echo "Changed files:\n${env.CHANGED_FILES}"
+                }
+            }
+        }
+
+        // =====================================================================
+        // Stage 2: Install Dependencies
+        // =====================================================================
+        stage('Install Dependencies') {
+            steps {
+                container('python') {
+                    sh '''
+                        pip install --no-cache-dir -r requirements.txt
+                        pip install pytest pytest-cov pytest-asyncio flake8 black mypy bandit
+                    '''
+                }
+            }
+        }
+
+        // =====================================================================
+        // Stage 3: Parallel Validation
+        // =====================================================================
+        stage('Parallel Validation') {
+            parallel {
+                // ---------------------------------------------------------
+                // Unit Tests
+                // ---------------------------------------------------------
+                stage('Unit Tests') {
+                    steps {
+                        container('python') {
+                            sh '''
+                                python -m pytest tests/ \
+                                    --cov=src \
+                                    --cov-report=xml \
+                                    --cov-fail-under=70 \
+                                    --junitxml=test-results.xml \
+                                    -v \
+                                    --tb=short
+                            '''
+                        }
+                    }
+                    post {
+                        always {
+                            junit 'test-results.xml'
+                        }
+                    }
+                }
+
+                // ---------------------------------------------------------
+                // Linting
+                // ---------------------------------------------------------
+                stage('Linting') {
+                    steps {
+                        container('python') {
+                            sh '''
+                                echo "=== Flake8 ===" 
+                                flake8 src/ --max-line-length=100 --ignore=E501,W503 --statistics
+                                
+                                echo "=== Black ==="
+                                black --check --diff src/ --line-length=100
+                            '''
+                        }
+                    }
+                }
+
+                // ---------------------------------------------------------
+                // Type Checking
+                // ---------------------------------------------------------
+                stage('Type Check') {
+                    steps {
+                        container('python') {
+                            sh '''
+                                mypy src/ --ignore-missing-imports --no-error-summary || true
+                            '''
+                        }
+                    }
+                }
+
+                // ---------------------------------------------------------
+                // Security Check
+                // ---------------------------------------------------------
+                stage('Security Check') {
+                    steps {
+                        container('python') {
+                            sh '''
+                                bandit -r src/ -ll --exit-zero
+                            '''
+                        }
+                    }
+                }
+            }
+        }
+
+        // =====================================================================
+        // Stage 4: Build Verification
+        // =====================================================================
+        stage('Build Verification') {
+            steps {
+                container('docker') {
+                    sh '''
+                        docker build \
+                            --target production \
+                            --tag ${APP_NAME}:pr-${BUILD_NUMBER} \
+                            .
+                    '''
+                }
+            }
+        }
+
+        // =====================================================================
+        // Stage 5: Integration Test (Optional)
+        // =====================================================================
+        stage('Integration Test') {
+            when {
+                expression {
+                    return env.CHANGED_FILES.contains('src/') || env.CHANGED_FILES.contains('tests/')
+                }
+            }
+            steps {
+                container('docker') {
+                    sh '''
+                        # Run container
+                        docker run -d \
+                            --name test-container \
+                            -p 8000:8000 \
+                            ${APP_NAME}:pr-${BUILD_NUMBER}
+                        
+                        # Wait for container to be ready
+                        sleep 10
+                        
+                        # Health check
+                        docker exec test-container curl -f http://localhost:8000/health || exit 1
+                        
+                        # Cleanup
+                        docker stop test-container
+                        docker rm test-container
+                    '''
+                }
+            }
+        }
+    }
+
+    // =========================================================================
+    // Post Actions
+    // =========================================================================
+    post {
+        always {
+            cleanWs()
+        }
+        success {
+            script {
+                // GitHub status check
+                if (env.CHANGE_ID) {
+                    echo "PR #${env.CHANGE_ID} validation passed ✅"
+                }
+            }
+        }
+        failure {
+            script {
+                if (env.CHANGE_ID) {
+                    echo "PR #${env.CHANGE_ID} validation failed ❌"
+                }
+            }
+        }
+    }
+}

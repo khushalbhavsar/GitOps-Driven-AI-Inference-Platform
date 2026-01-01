@@ -1,0 +1,37 @@
+# =============================================================================
+# Development Environment - Replica Override
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-inference
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+        - name: ai-inference
+          env:
+            - name: DEBUG
+              value: "true"
+            - name: LOG_LEVEL
+              value: "DEBUG"
+            - name: WORKERS
+              value: "2"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+
+---
+# Disable HPA in dev (use fixed replica count)
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ai-inference
+spec:
+  minReplicas: 1
+  maxReplicas: 3

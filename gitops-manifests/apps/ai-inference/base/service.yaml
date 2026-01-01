@@ -1,0 +1,97 @@
+# =============================================================================
+# AI Inference Service - Base Configuration
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-inference
+  labels:
+    app: ai-inference
+    app.kubernetes.io/name: ai-inference
+    app.kubernetes.io/component: api
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+  selector:
+    app: ai-inference
+
+---
+# =============================================================================
+# Service Account
+# =============================================================================
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ai-inference
+  labels:
+    app: ai-inference
+automountServiceAccountToken: false
+
+---
+# =============================================================================
+# Pod Disruption Budget
+# =============================================================================
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ai-inference
+  labels:
+    app: ai-inference
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: ai-inference
+
+---
+# =============================================================================
+# Network Policy
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ai-inference
+  labels:
+    app: ai-inference
+spec:
+  podSelector:
+    matchLabels:
+      app: ai-inference
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow traffic from ingress controller
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8000
+    # Allow traffic from monitoring (Prometheus)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - protocol: TCP
+          port: 8000
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow HTTPS (for model downloads)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 443

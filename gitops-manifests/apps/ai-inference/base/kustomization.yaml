@@ -1,0 +1,32 @@
+# =============================================================================
+# Kustomization - Base Configuration
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: ai-inference-base
+
+# Common labels applied to all resources
+commonLabels:
+  app.kubernetes.io/name: ai-inference
+  app.kubernetes.io/part-of: ai-platform
+  app.kubernetes.io/managed-by: argocd
+
+# Resources to include
+resources:
+  - deployment.yaml
+  - service.yaml
+  - hpa.yaml
+
+# Image configuration (overridden by overlays)
+images:
+  - name: ai-inference
+    newName: your-registry.com/ai-inference
+    newTag: latest
+
+# ConfigMap generator (if needed)
+# configMapGenerator:
+#   - name: ai-inference-config
+#     literals:
+#       - LOG_LEVEL=INFO

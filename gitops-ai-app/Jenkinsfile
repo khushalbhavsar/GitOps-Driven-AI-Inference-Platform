@@ -1,0 +1,308 @@
+// =============================================================================
+// Jenkins CI Pipeline - Main Branch
+// Handles: Build, Test, Push, GitOps Update
+// =============================================================================
+
+pipeline {
+    agent {
+        kubernetes {
+            yaml '''
+                apiVersion: v1
+                kind: Pod
+                spec:
+                  containers:
+                  - name: python
+                    image: python:3.11-slim
+                    command:
+                    - cat
+                    tty: true
+                  - name: docker
+                    image: docker:24-dind
+                    securityContext:
+                      privileged: true
+                    volumeMounts:
+                    - name: docker-socket
+                      mountPath: /var/run/docker.sock
+                  - name: git
+                    image: alpine/git:latest
+                    command:
+                    - cat
+                    tty: true
+                  volumes:
+                  - name: docker-socket
+                    emptyDir: {}
+            '''
+        }
+    }
+
+    environment {
+        // Application
+        APP_NAME = 'ai-inference'
+        
+        // Docker Registry
+        DOCKER_REGISTRY = credentials('docker-registry-url')
+        DOCKER_CREDENTIALS = credentials('docker-registry-credentials')
+        IMAGE_NAME = "${DOCKER_REGISTRY}/${APP_NAME}"
+        
+        // GitOps Repository
+        GITOPS_REPO = 'github.com/your-org/gitops-manifests.git'
+        GITOPS_CREDENTIALS = credentials('gitops-repo-credentials')
+        
+        // Build Info
+        GIT_COMMIT_SHORT = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+        IMAGE_TAG = "${env.BUILD_NUMBER}-${GIT_COMMIT_SHORT}"
+    }
+
+    options {
+        timeout(time: 30, unit: 'MINUTES')
+        disableConcurrentBuilds()
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        timestamps()
+    }
+
+    stages {
+        // =====================================================================
+        // Stage 1: Checkout
+        // =====================================================================
+        stage('Checkout') {
+            steps {
+                checkout scm
+                
+                script {
+                    echo "Building commit: ${env.GIT_COMMIT_SHORT}"
+                    echo "Image tag: ${env.IMAGE_TAG}"
+                }
+            }
+        }
+
+        // =====================================================================
+        // Stage 2: Unit Tests
+        // =====================================================================
+        stage('Unit Tests') {
+            steps {
+                container('python') {
+                    sh '''
+                        pip install --no-cache-dir -r requirements.txt
+                        pip install pytest pytest-cov pytest-asyncio
+                        
+                        # Run tests with coverage
+                        python -m pytest tests/ \
+                            --cov=src \
+                            --cov-report=xml \
+                            --cov-report=html \
+                            --junitxml=test-results.xml \
+                            -v
+                    '''
+                }
+            }
+            post {
+                always {
+                    junit 'test-results.xml'
+                    publishHTML(target: [
+                        reportDir: 'htmlcov',
+                        reportFiles: 'index.html',
+                        reportName: 'Coverage Report'
+                    ])
+                }
+            }
+        }
+
+        // =====================================================================
+        // Stage 3: Code Quality (Linting)
+        // =====================================================================
+        stage('Code Quality') {
+            parallel {
+                stage('Flake8') {
+                    steps {
+                        container('python') {
+                            sh '''
+                                pip install flake8
+                                flake8 src/ --max-line-length=100 --ignore=E501,W503
+                            '''
+                        }
+                    }
+                }
+                stage('Black') {
+                    steps {
+                        container('python') {
+                            sh '''
+                                pip install black
+                                black --check src/ --line-length=100
+                            '''
+                        }
+                    }
+                }
+                stage('MyPy') {
+                    steps {
+                        container('python') {
+                            sh '''
+                                pip install mypy
+                                mypy src/ --ignore-missing-imports || true
+                            '''
+                        }
+                    }
+                }
+            }
+        }
+
+        // =====================================================================
+        // Stage 4: Security Scan
+        // =====================================================================
+        stage('Security Scan') {
+            steps {
+                container('python') {
+                    sh '''
+                        pip install bandit safety
+                        
+                        # Bandit - Python security linter
+                        bandit -r src/ -f json -o bandit-report.json || true
+                        
+                        # Safety - Check dependencies for vulnerabilities
+                        safety check -r requirements.txt --json > safety-report.json || true
+                    '''
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '*-report.json', allowEmptyArchive: true
+                }
+            }
+        }
+
+        // =====================================================================
+        // Stage 5: Build Docker Image
+        // =====================================================================
+        stage('Build Docker Image') {
+            steps {
+                container('docker') {
+                    script {
+                        sh """
+                            docker build \
+                                --target production \
+                                --tag ${IMAGE_NAME}:${IMAGE_TAG} \
+                                --tag ${IMAGE_NAME}:latest \
+                                --build-arg BUILD_DATE=\$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
+                                --build-arg VCS_REF=${GIT_COMMIT_SHORT} \
+                                --build-arg VERSION=${IMAGE_TAG} \
+                                --no-cache \
+                                .
+                        """
+                    }
+                }
+            }
+        }
+
+        // =====================================================================
+        // Stage 6: Container Security Scan
+        // =====================================================================
+        stage('Container Scan') {
+            steps {
+                container('docker') {
+                    sh """
+                        # Install Trivy
+                        apk add --no-cache curl
+                        curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+                        
+                        # Scan image for vulnerabilities
+                        trivy image \
+                            --severity HIGH,CRITICAL \
+                            --exit-code 0 \
+                            --format json \
+                            --output trivy-report.json \
+                            ${IMAGE_NAME}:${IMAGE_TAG}
+                    """
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'trivy-report.json', allowEmptyArchive: true
+                }
+            }
+        }
+
+        // =====================================================================
+        // Stage 7: Push Docker Image
+        // =====================================================================
+        stage('Push Docker Image') {
+            when {
+                branch 'main'
+            }
+            steps {
+                container('docker') {
+                    script {
+                        withCredentials([usernamePassword(
+                            credentialsId: 'docker-registry-credentials',
+                            usernameVariable: 'DOCKER_USER',
+                            passwordVariable: 'DOCKER_PASS'
+                        )]) {
+                            sh """
+                                echo \$DOCKER_PASS | docker login ${DOCKER_REGISTRY} -u \$DOCKER_USER --password-stdin
+                                docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                                docker push ${IMAGE_NAME}:latest
+                            """
+                        }
+                    }
+                }
+            }
+        }
+
+        // =====================================================================
+        // Stage 8: Update GitOps Repository
+        // =====================================================================
+        stage('Update GitOps Repo') {
+            when {
+                branch 'main'
+            }
+            steps {
+                container('git') {
+                    script {
+                        withCredentials([usernamePassword(
+                            credentialsId: 'gitops-repo-credentials',
+                            usernameVariable: 'GIT_USER',
+                            passwordVariable: 'GIT_TOKEN'
+                        )]) {
+                            sh """
+                                # Clone GitOps repository
+                                git clone https://\$GIT_USER:\$GIT_TOKEN@${GITOPS_REPO} gitops-manifests
+                                cd gitops-manifests
+                                
+                                # Update image tag in kustomization
+                                sed -i 's|newTag:.*|newTag: ${IMAGE_TAG}|g' apps/ai-inference/base/kustomization.yaml
+                                
+                                # Commit and push
+                                git config user.email "jenkins@ci.local"
+                                git config user.name "Jenkins CI"
+                                git add .
+                                git commit -m "chore: update ai-inference image to ${IMAGE_TAG}
+
+Build: ${BUILD_URL}
+Commit: ${GIT_COMMIT_SHORT}"
+                                
+                                git push origin main
+                            """
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // =========================================================================
+    // Post Actions
+    // =========================================================================
+    post {
+        always {
+            cleanWs()
+        }
+        success {
+            echo "Pipeline completed successfully!"
+            // Slack notification (optional)
+            // slackSend(color: 'good', message: "Build ${BUILD_NUMBER} succeeded")
+        }
+        failure {
+            echo "Pipeline failed!"
+            // Slack notification (optional)
+            // slackSend(color: 'danger', message: "Build ${BUILD_NUMBER} failed")
+        }
+    }
+}
